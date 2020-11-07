@@ -1,0 +1,317 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf470
+{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;\f1\fnil\fcharset0 LucidaGrande;}
+{\colortbl;\red255\green255\blue255;\red100\green56\blue32;\red196\green26\blue22;\red0\green116\blue0;
+\red170\green13\blue145;\red28\green0\blue207;\red63\green110\blue116;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww15660\viewh18600\viewkind0
+\deftab529
+\pard\tx529\pardeftab529\pardirnatural\partightenfactor0
+
+\f0\fs22 \cf2 \CocoaLigature0 #include \cf3 "aservelibs/aservelib.h"\cf2 \
+#include \cf3 <stdio.h>\cf2 \
+\cf0 \
+\cf4 // === NOTES ===================================================\cf0 \
+\
+\cf4 // Copyright 
+\f1 \'a9
+\f0  Ross Duncan 2016\
+// Any comments marked in *** asterisks *** correspond to procedure boxes in the flowchart\cf0 \
+\
+\cf4 // === FUNCTION DECLARATIONS =========================================\cf0 \
+\cf5 int\cf0  GetTempo();\
+\cf5 void\cf0  CalculateFrequencies();\
+\cf5 float\cf0  ChangeAmplitude(\cf5 int\cf0  amplitude1, \cf5 int\cf0  amplitude2, \cf5 int\cf0  nowEditing);\
+\cf5 int\cf0  ChangeWaveType(\cf5 int\cf0  waveType1, \cf5 int\cf0  waveType2, \cf5 int\cf0  nowEditing);\
+\cf5 void\cf0  PlayNotes(\cf5 int\cf0  tempo, \cf5 int\cf0  step);\
+\cf5 int\cf0  GetControl(\cf5 int\cf0  controlNumber);\
+\
+\cf4 // === GLOBAL VARIABLES ==============================================\cf0 \
+\cf4 // *** Create array storing step properties ***\cf0 \
+\cf4 // A 4-dimensional array is used to hold this data:\cf0 \
+\cf4 // There are 5 sequences.There are 5 rows for each sequence, containing the layers. Each layer has 8 steps. Each step has 3 rows: frequency, amplitude and wave type.\cf0 \
+\cf5 float\cf0  steps[\cf6 5\cf0 ][\cf6 5\cf0 ][\cf6 8\cf0 ][\cf6 3\cf0 ];\
+\cf4 // *** Create variables storing current sequence and layer ***\cf0 \
+\cf4 // The user initially starts working on Sequence 1 at Layer 1, at Step 1 (1 is represented by 0 as the array is zero-indexed)\cf0 \
+\cf5 int\cf0  sequence = \cf6 0\cf0 ;\
+\cf5 int\cf0  layer = \cf6 0\cf0 ;\
+\
+\cf4 // ===== FUNCTION DEFINITIONS ========================================\cf0 \
+\cf5 int\cf0  main ()\
+\{\
+    \cf5 int\cf0  sequence1 = \cf6 0\cf0 ; \cf4 // Used for detecting if the user wants to change sequence/layer\cf0 \
+    \cf5 int\cf0  sequence2; \cf4 // sequence1 stores the encoder value from the previous iteration of the loop. sequence2 is the current setting\cf0 \
+    \cf5 int\cf0  layer1 = \cf6 0\cf0 ;\
+    \cf5 int\cf0  layer2 = \cf6 0\cf0 ;\
+    \cf5 int\cf0  tempo;\
+    \cf5 int\cf0  nowEditing = -\cf6 1\cf0 ; \cf4 // Stores which step are editing if a step is selected with a button\cf0 \
+    \cf5 int\cf0  buttonInput; \cf4 // Stores the input of the button\cf0 \
+    \cf5 int\cf0  amplitude1 = GetControl(\cf6 103\cf0 ); \cf4 // Stores values of rotary 3 before it's changed\cf0 \
+    \cf5 int\cf0  amplitude2; \cf4 // Stores values of rotary 3 after it's changed\cf0 \
+    \cf5 int\cf0  waveType1 = GetControl(\cf6 104\cf0 ); \cf4 // Stores values of rotary 4 before it's changed\cf0 \
+    \cf5 int\cf0  waveType2; \cf4 // and after\cf0 \
+    \cf5 int\cf0  step = \cf6 0\cf0 ; \cf4 // Stores current step\cf0 \
+    \cf5 int\cf0  rotary5 = GetControl(\cf6 25\cf0 ); \cf4 // Stores initial setting of rotary 5\cf0 \
+    \
+    \cf4 // We initialise all of the amplitudes to 0 and all of the wave types to sine\cf0 \
+    \cf5 for\cf0  (\cf5 int\cf0  count1 = \cf6 0\cf0 ; count1 <= \cf6 4\cf0 ; count1++)\
+    \{\
+        \cf5 for\cf0  (\cf5 int\cf0  count2 = \cf6 0\cf0 ; count2 <= \cf6 4\cf0 ; count2++)\
+        \{\
+            \cf5 for\cf0  (\cf5 int\cf0  count3 = \cf6 0\cf0 ; count3 <= \cf6 7\cf0 ; count3++)\
+            \{\
+                steps[count1][count2][count3][\cf6 1\cf0 ] = \cf6 0.1\cf0 ; \cf4 // All amplitudes to 0.1\cf0 \
+                steps[count1][count2][count3][\cf6 2\cf0 ] = \cf6 0\cf0 ; \cf4 // All wave types to sine (0)\cf0 \
+            \}\
+        \}\
+    \}\
+    \
+    \
+    \
+    \cf4 // *** Give user instructions ***\cf0 \
+    printf(\cf3 "\\nWelcome to Impulse++. You have 5 sequences available to use. Each sequence has 5 layers and each layer has 8 steps. To change sequence, move rotary encoder 1. To change the layer, move rotary encoder 2.\\n\\n"\cf0 );\
+    printf(\cf3 "Use the first 8 sliders to change the frequency of each step. Button 9 locks/unlocks the sliders so you can change the frequencies - ensure that button 9 is pressed before you move a slider. The sliders can handle up to 127 notches - every 4 notches is a semitone.  Middle C is 25. Press the button under a slider to change that step's amplitude and wave type [sine (0)/square (1)/saw (2)] using rotary encoders 3 and 4 respecitvely - press the button again to exit this edit mode. Please note that all of the amplitudes are initialised to 0.1 and the wave types are sine by default. [PRESS ENTER TO CONTINUE]\\n"\cf0 );\
+    \cf4 // Allow the user to press enter\cf0 \
+    \cf5 char\cf0  enter;\
+    scanf(\cf3 "%c"\cf0 , &enter);\
+    printf(\cf3 "Use the modulation wheel to adjust the tempo - move it to the maximum position to exit the program.\\n\\nUse rotary encoder 5 to transpose the layer you're editing in semitones - you may only transpose up to start with but then down once you've increased the control. Be aware that sliders set to 0 will also be transposed, as 0 means 0 Hz.\\n\\nBEFORE YOU BEGIN: SET ALL CONTROLS TO 0. Remember to engage button 9 to change any frequencies and to deselect any slider buttons when not altering a step's amplitude or wave type to avoid confusion. THIS MAY BECOME LOUD; turn your volume down! Press ENTER when you're ready to begin."\cf0 );\
+    scanf(\cf3 "%c"\cf0 , &enter);\
+    \
+    \cf4 // Infinite loop\cf0 \
+    \cf5 while\cf0  (\cf5 true\cf0 )\
+    \{\
+        \cf4 // *** Take input from modulation wheel ***\cf0 \
+        tempo = GetTempo();\
+        \cf5 if\cf0  (tempo == \cf6 1\cf0 )\
+        \{\
+            \cf4 // If the returned value is 1 (meaning the modulation wheel is at 0), the program exits\cf0 \
+            \cf5 break\cf0 ;\
+        \}\
+        \
+        \cf4 // *** Take input from rotary 1 ***\cf0 \
+        sequence2 = GetControl(\cf6 21\cf0 );\
+        \cf4 // If they have changed increased the encoder, increment the sequence number\cf0 \
+        \cf5 if\cf0  (sequence2 > sequence1)\
+        \{\
+            \cf4 // If the sequence number is already 4, don't change it\cf0 \
+            \cf5 if\cf0  (sequence < \cf6 4\cf0 )\
+            \{\
+                sequence++;\
+            \}\
+        \}\
+        \cf4 // Otherwise, if they have decreased the encoder, decrement the sequence number\cf0 \
+        \cf5 else\cf0  \cf5 if\cf0  (sequence2 < sequence1)\
+        \{\
+            \cf4 // If the sequence number is already 0, don't change it\cf0 \
+            \cf5 if\cf0  (sequence > \cf6 0\cf0 )\
+            \{\
+                sequence--;\
+            \}\
+        \}\
+        \cf4 // Set the previous encoder value to the current value\cf0 \
+        sequence1 = sequence2;\
+        \
+        \cf4 // *** Take input from rotary 2 ***\cf0 \
+        \cf4 // Do the same check for the layers as for the sequences\cf0 \
+        layer2 = GetControl(\cf6 22\cf0 );\
+        \cf5 if\cf0  (layer2 > layer1)\
+        \{\
+            \cf5 if\cf0  (layer < \cf6 4\cf0 )\
+            \{\
+                layer++;\
+            \}\
+        \}\
+        \cf5 else\cf0  \cf5 if\cf0  (layer2 < layer1)\
+        \{\
+            \cf5 if\cf0  (layer > \cf6 0\cf0 )\
+            \{\
+                layer--;\
+            \}\
+        \}\
+        layer1 = layer2;\
+        \
+        \cf4 // *** Take input from sliders ***\cf0 \
+        CalculateFrequencies();\
+        \
+        \cf4 // *** Take input from slider buttons ***\cf0 \
+        \cf5 for\cf0  (\cf5 int\cf0  counter = \cf6 0\cf0 ; counter <= \cf6 7\cf0 ; counter++)\
+        \{\
+            buttonInput = GetControl(counter + \cf6 51\cf0 );\
+            \cf4 // If the button is pressed, we register that the corresponding step is to be edited\cf0 \
+            \cf5 if\cf0  (buttonInput > \cf6 0\cf0 )\
+            \{\
+                nowEditing = counter;\
+            \}\
+        \}\
+        \
+        \cf4 // If we are editing a step, take input from rotary 3 and 4\cf0 \
+        \cf5 if\cf0  (nowEditing != -\cf6 1\cf0 )\
+        \{\
+            amplitude2 = GetControl(\cf6 23\cf0 );\
+            waveType2 = GetControl(\cf6 24\cf0 );\
+            \cf4 // Work out what the user is changing the amplitude and wave type values to and insert the new values into the array\cf0 \
+            \cf5 float\cf0  newAmplitude = ChangeAmplitude(amplitude1, amplitude2, nowEditing);\
+            \cf5 int\cf0  newWaveType = ChangeWaveType(waveType1, waveType2, nowEditing);\
+            amplitude1 = newAmplitude;\
+            waveType1 = newWaveType;\
+        \}\
+        \
+        \cf4 // *** Take input from rotary 5 ***\cf0 \
+        \cf5 int\cf0  rotary5Reading = GetControl(\cf6 25\cf0 );\
+        \cf5 int\cf0  difference;\
+        \cf4 // If the rotary has been moved, shift the notes by a number of semitones\cf0 \
+        \cf5 if\cf0  (rotary5Reading != rotary5)\
+        \{\
+            \cf4 // Work out difference of the value of rotary 5 before and after it was changed\cf0 \
+            difference = rotary5Reading - rotary5;\
+            \cf5 int\cf0  frequency;\
+            \cf5 int\cf0  setting;\
+            \cf4 // Loop through all steps in the layer\cf0 \
+            \cf5 for\cf0  (\cf5 int\cf0  counter = \cf6 0\cf0 ; counter <= \cf6 7\cf0 ; counter++)\
+            \{\
+                \cf4 // Calculate the new value\cf0 \
+                frequency = steps[sequence][layer][counter][\cf6 0\cf0 ];\
+                setting = frequency / \cf6 21\cf0 ;\
+                setting = setting + (difference * \cf6 4\cf0 );\
+                frequency = setting * \cf6 21\cf0 ;\
+                \cf4 // If frequency is set too low or too high, throw error\cf0 \
+                \cf5 if\cf0  (frequency < \cf6 0\cf0 )\
+                \{\
+                    printf(\cf3 "\\nERROR: Transposition too low"\cf0 );\
+                    \cf5 break\cf0 ;\
+                \}\
+                \cf5 else\cf0  \cf5 if\cf0  (frequency > \cf6 20000\cf0 )\
+                \{\
+                    printf(\cf3 "\\nERROR: Transposition too high"\cf0 );\
+                    \cf5 break\cf0 ;\
+                \}\
+                \cf4 // If there's no error, store the new value in the array\cf0 \
+                \cf5 else\cf0 \
+                \{\
+                    steps[sequence][layer][counter][\cf6 0\cf0 ] = frequency;\
+                \}\
+            \}\
+            rotary5 = rotary5Reading;\
+        \}\
+        \
+        \cf4 // Play all notes currently under the step currently selected, from each of the 5 layers\cf0 \
+        PlayNotes(tempo, step);\
+        \cf4 // Increment the step number\cf0 \
+        step++;\
+        \cf4 // If we've reached the end of the sequence, set the step number so we're back at the beginning for the next iteration\cf0 \
+        \cf5 if\cf0  (step == \cf6 8\cf0 )\
+        \{\
+            step = \cf6 0\cf0 ;\
+            \cf5 if\cf0  (nowEditing != -\cf6 1\cf0 )\
+            \{\
+                \cf4 // If we are editing a step (if a slider button is pressed), display the step number as well\cf0 \
+                printf(\cf3 "\\nNow editing Sequence %d, Layer %d, STEP %d"\cf0 , sequence + \cf6 1\cf0 , layer + \cf6 1\cf0 , nowEditing + \cf6 1\cf0 );\
+            \}\
+            \cf5 else\cf0 \
+            \{\
+                \cf4 // Otherwise, just show the sequence and layer\cf0 \
+                printf(\cf3 "\\nNow editing Sequence %d, Layer %d"\cf0 , sequence + \cf6 1\cf0 , layer + \cf6 1\cf0 );\
+            \}\
+        \}\
+        \cf4 // Reset the nowEditing ID to null in case it's not pressed next time\cf0 \
+        nowEditing = -\cf6 1\cf0 ;\
+    \}\
+    printf(\cf3 "\\n"\cf0 );\
+    \cf5 return\cf0  \cf6 0\cf0 ;\
+\}\
+\
+\cf5 int\cf0  GetTempo()\
+\{\
+    \cf4 // Take reading from modulation wheel, multiply it by 5 and subtract it from 1000 to get the tempo\cf0 \
+    \cf5 int\cf0  reading = GetControl(\cf6 1\cf0 );\
+    \cf5 int\cf0  tempo = \cf6 700\cf0  - reading * \cf6 5.5\cf0 ;\
+    \cf5 return\cf0  tempo;\
+\}\
+\
+\cf5 void\cf0  CalculateFrequencies()\
+\{\
+    \cf4 // Do not calculate any frequencies unless button 9 is pressed\cf0 \
+    \cf5 int\cf0  button9Reading = GetControl(\cf6 59\cf0 );\
+    \cf5 if\cf0  (button9Reading == \cf6 127\cf0 )\
+    \{\
+        \cf4 // Variable for taking the reading of the slider\cf0 \
+        \cf5 int\cf0  reading;\
+        \cf4 // Varible for storing the result of the calculation\cf0 \
+        \cf5 int\cf0  calculation;\
+        \cf4 // We take the input of every slider and multiply it by 140 to get the frequency\cf0 \
+        \cf5 for\cf0  (\cf5 int\cf0  stepNo = \cf6 0\cf0 ; stepNo <= \cf6 7\cf0 ; stepNo++)\
+        \{\
+            \cf4 // As the control number of the lowest slider is 41, we adjust the counter to reference it\cf0 \
+            reading = GetControl(stepNo + \cf6 41\cf0 );\
+            calculation = reading * \cf6 21\cf0 ;\
+            \cf4 // We store the frequency in the array under the frequency row of the step\cf0 \
+            steps[sequence][layer][stepNo][\cf6 0\cf0 ] = calculation;\
+        \}\
+    \}\
+\}\
+\
+\cf5 float\cf0  ChangeAmplitude(\cf5 int\cf0  amplitude1, \cf5 int\cf0  amplitude2, \cf5 int\cf0  nowEditing)\
+\{\
+    \cf4 // Work out the difference between the value before the control was changed and the value after\cf0 \
+    \cf5 float\cf0  amplitudeChange = amplitude2 - amplitude1;\
+    \cf5 float\cf0  oldAmplitude = \cf7 steps\cf0 [\cf7 sequence\cf0 ][\cf7 layer\cf0 ][nowEditing][\cf6 1\cf0 ];\
+    \cf4 // and calculate a new amplitude. Set the value to 127 if it's too large and 0 if it's too small\cf0 \
+    \cf5 float\cf0  newAmplitude = oldAmplitude + amplitudeChange;\
+    \cf5 if\cf0  (newAmplitude < \cf6 0\cf0 )\
+    \{\
+        newAmplitude = \cf6 0\cf0 ;\
+    \}\
+    \cf5 else\cf0  \cf5 if\cf0  (newAmplitude > \cf6 127\cf0 )\
+    \{\
+        newAmplitude = \cf6 127\cf0 ;\
+    \}\
+    \cf4 // Store new amplitude in the array. Ensure the value is scaled as the actual amplitude must be between 0 and 1\cf0 \
+    \cf7 steps\cf0 [\cf7 sequence\cf0 ][\cf7 layer\cf0 ][nowEditing][\cf6 1\cf0 ] = newAmplitude / \cf6 127\cf0 ;\
+    \cf5 return\cf0  newAmplitude;\
+\}\
+\
+\cf5 int\cf0  ChangeWaveType(\cf5 int\cf0  waveType1, \cf5 int\cf0  waveType2, \cf5 int\cf0  nowEditing)\
+\{\
+    \cf4 // Work out the difference between the value before the control was changed and the value after\cf0 \
+    \cf5 int\cf0  waveTypeChange = waveType2 - waveType1;\
+    \cf5 int\cf0  oldWaveType = \cf7 steps\cf0 [\cf7 sequence\cf0 ][\cf7 layer\cf0 ][nowEditing][\cf6 2\cf0 ];\
+    \cf4 // Calculate the new wave type. Set the value to 2 if it's too large and 0 if it's to small\cf0 \
+    \cf5 int\cf0  newWaveType = oldWaveType + waveTypeChange;\
+    \cf5 if\cf0  (newWaveType < \cf6 0\cf0 )\
+    \{\
+        newWaveType = \cf6 0\cf0 ;\
+    \}\
+    \cf5 else\cf0  \cf5 if\cf0  (newWaveType > \cf6 2\cf0 )\
+    \{\
+        newWaveType = \cf6 2\cf0 ;\
+    \}\
+    \cf7 steps\cf0 [\cf7 sequence\cf0 ][\cf7 layer\cf0 ][nowEditing][\cf6 2\cf0 ] = newWaveType;\
+    \cf5 return\cf0  newWaveType;\
+\}\
+\
+\cf5 void\cf0  PlayNotes(\cf5 int\cf0  tempo, \cf5 int\cf0  step)\
+\{\
+    \cf5 int\cf0  frequency;\
+    \cf5 float\cf0  amplitude;\
+    \cf5 int\cf0  waveType;\
+    \cf4 // Work out parameters for the oscillator and play each oscillator\cf0 \
+    \cf5 for\cf0  (\cf5 int\cf0  counter = \cf6 0\cf0 ; counter <= \cf6 4\cf0 ; counter++)\
+    \{\
+        frequency = \cf7 steps\cf0 [\cf7 sequence\cf0 ][counter][step][\cf6 0\cf0 ];\
+        amplitude = \cf7 steps\cf0 [\cf7 sequence\cf0 ][counter][step][\cf6 1\cf0 ];\
+        waveType = steps[sequence][counter][step][\cf6 2\cf0 ];\
+        aserveOscillator(counter, frequency, amplitude, waveType);\
+    \}\
+    \cf4 // Wait for some time, according to the tempo\cf0 \
+    aserveSleep(tempo);\
+\}\
+\
+\cf4 // Scans the control 20 times to get the correct value\
+// in order to get around a bug within Aserve that means that it only registers the correct control value after a number of checks\cf0 \
+\cf5 int\cf0  GetControl(\cf5 int\cf0  controlNumber)\
+\{\
+    \cf5 int\cf0  result;\
+    \cf5 for\cf0  (\cf5 int\cf0  counter = \cf6 0\cf0 ; counter < \cf6 20\cf0 ; counter++)\
+    \{\
+        result = aserveGetControl(controlNumber);\
+    \}\
+    \cf5 return\cf0  result;\
+\}}
