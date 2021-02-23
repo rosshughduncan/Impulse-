@@ -1,3 +1,5 @@
+<h1>ImpulsePlusPlus</h1>
+
 This project is a musical step sequencer program designed to be used with a Novation Impulse MIDI keyboard controller.
 It works with a program called Aserve, which was a synthesiser written using the JUCE audio framework, which we used at university to test our programs.
 
